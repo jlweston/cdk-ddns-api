@@ -10,6 +10,9 @@ type LambdaEvent = APIGatewayProxyEventV2 & {
 type LambdaResult = {
   statusCode: number;
   body: string;
+  headers?: {
+    [key: string]: string;
+  };
 };
 
 const route53 = new Route53();
@@ -17,9 +20,10 @@ const route53 = new Route53();
 const DEFAULT_TTL = 5 * 60; // 5 minutes
 
 export const handler = async (event: LambdaEvent): Promise<LambdaResult> => {
-  const { queryStringParameters: { myip, hostname } = {} } = event;
+  const { queryStringParameters: { myip: newIpAddress, hostname } = {} } =
+    event;
 
-  if (!myip) {
+  if (!newIpAddress) {
     return {
       statusCode: 400,
       body: JSON.stringify({
@@ -41,10 +45,16 @@ export const handler = async (event: LambdaEvent): Promise<LambdaResult> => {
     };
   }
 
+  console.log(`Updating ${hostnames.length} hostnames`, {
+    hostnames,
+    newIp: newIpAddress,
+  });
+
   try {
     for (const hostname of hostnames) {
       const zoneId = await findZoneId(hostname);
-      await updateResourceRecord(zoneId, hostname, myip, DEFAULT_TTL);
+      await updateResourceRecord(zoneId, hostname, newIpAddress, DEFAULT_TTL);
+      console.log(`Update complete for ${hostname} = ${newIpAddress}`);
     }
   } catch (error) {
     console.error(error);
@@ -53,7 +63,10 @@ export const handler = async (event: LambdaEvent): Promise<LambdaResult> => {
 
   return {
     statusCode: 200,
-    body: JSON.stringify("successfully updated DNS records"),
+    headers: {
+      "Content-Type": "text/plain",
+    },
+    body: `good ${newIpAddress}\n`,
   };
 };
 
