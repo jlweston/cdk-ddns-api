@@ -1,14 +1,29 @@
-# Welcome to your CDK TypeScript project
+# CDK DDNS API
 
-This is a blank project for TypeScript development with CDK.
+This is a CDK app that provides a REST API for Dynamic DNS updates. If you're running services locally that need to update their DNS records when your IP address changes, you can use this app to do so.
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+## Deploying the stack
 
-## Useful commands
+- Update the .env file with a username and password to be used for authentication against the API.
+- Run `npm install` to install the dependencies.
+- (optional) Run `cdk synth` to generate the CloudFormation template - useful if you want to examine the template before deploying.
+- Run `cdk deploy` to deploy the stack. Note down the API URL for use in the next section.
 
-* `npm run build`   compile typescript to js
-* `npm run watch`   watch for changes and compile
-* `npm run test`    perform the jest unit tests
-* `cdk deploy`      deploy this stack to your default AWS account/region
-* `cdk diff`        compare deployed stack with current state
-* `cdk synth`       emits the synthesized CloudFormation template
+## Configuring `ddclient`
+
+`ddclient` should come pre-installed on most Linux distributions. If yours does not include it, you can install it with `sudo apt-get install ddclient`.
+
+To configure the client to use the API, edit the `/etc/ddclient.conf` file to include the following:
+
+```apacheconf
+protocol=dyndns2 # The protocol to use
+use=web, web=checkip.dyndns.com # used to check the current IP address
+ssl=yes
+server=2j19bh391f.execute-api.eu-west-1.amazonaws.com # The URL of the API from the previous section
+login='your-username-here' # The username from the previous section
+password='your-password-here' # The password from the previous section
+your-domain-here.com
+another-domain.com
+```
+
+Save and close the file, then run `sudo service ddclient restart` to detect the new configuration. `ddclient` will now monitor your IP address and update your DNS records for all configured domains when it changes.
